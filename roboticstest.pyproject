@@ -1,6 +1,11 @@
 {
     "files": [
-        "main.py",
-        "main.qml"
+        "CMakeList.txt",
+        "launch/nova5_control_launch.py",
+        "package.xml",
+        "src/gui.qml",
+        "src/main.py",
+        "src/nova5_control_node.py",
+        "src/nova5_status_node.py"
     ]
 }

@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.5)
+project(ros_nova5_control)
+
+find_package(ament_cmake REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+  src/main.py
+  src/nova5_control_node.py
+  src/nova5_status_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+ament_package()
