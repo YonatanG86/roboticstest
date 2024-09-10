@@ -1,4 +1,5 @@
 import sys
+print(sys.executable)
 from pathlib import Path
 from threading import Thread
 import rclpy
