@@ -7,7 +7,8 @@ from std_msgs.msg import String
 from PySide6.QtCore import Signal, QObject, Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtWidgets import QApplication, QMainWindow, QTextEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QTextEdit, QVBoxLayout, QWidget, QSplitter
+
 
 class RosPublisherNode(Node):
     def __init__(self):
@@ -36,22 +37,16 @@ class RosWorker(QObject):
         rclpy.shutdown()
 
 
-class ConsoleWindow(QMainWindow):
+class ConsoleWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("ROS Console")
-        self.setGeometry(100, 100, 600, 400)
 
         self.text_edit = QTextEdit()
         self.text_edit.setReadOnly(True)
 
         layout = QVBoxLayout()
         layout.addWidget(self.text_edit)
-
-        container = QWidget()
-        container.setLayout(layout)
-
-        self.setCentralWidget(container)
+        self.setLayout(layout)
 
     def write(self, message):
         self.text_edit.append(message)
@@ -60,20 +55,47 @@ class ConsoleWindow(QMainWindow):
         pass
 
 
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("ROS and QML Split View")
+        self.setGeometry(100, 100, 1200, 800)
+
+        # Create a QSplitter to split the window into two areas
+        splitter = QSplitter(Qt.Horizontal)
+
+        # Left side: Console window
+        self.console_window = ConsoleWindow()
+
+        # Right side: QML application view
+        self.qml_widget = QWidget()
+        self.qml_layout = QVBoxLayout()
+        self.qml_widget.setLayout(self.qml_layout)
+
+        splitter.addWidget(self.console_window)
+        splitter.addWidget(self.qml_widget)
+
+        # Set initial sizes of the two areas
+        splitter.setSizes([400, 800])
+
+        self.setCentralWidget(splitter)
+
+    def set_qml_engine(self, engine):
+        # Add QML view to the right side
+        self.qml_layout.addWidget(engine)
+
+
 if __name__ == "__main__":
-    # Redirect standard output and error to the console window
-    app = QApplication(sys.argv)
-    console_window = ConsoleWindow()
-    console_window.show()
-
-    sys.stdout = console_window
-    sys.stderr = console_window
-
     # Initialize ROS 2
     rclpy.init(args=None)
 
-    gui_app = QGuiApplication(sys.argv)
-    engine = QQmlApplicationEngine()
+    app = QApplication(sys.argv)
+    main_window = MainWindow()
+    main_window.show()
+
+    # Redirect standard output and error to the console window
+    sys.stdout = main_window.console_window
+    sys.stderr = main_window.console_window
 
     # Set up the ROS worker
     ros_worker = RosWorker()
@@ -83,6 +105,9 @@ if __name__ == "__main__":
     ros_thread.start()
 
     # Load the QML file
+    gui_app = QGuiApplication(sys.argv)
+    engine = QQmlApplicationEngine()
+
     qml_file = Path(__file__).resolve().parent / "main.qml"
     engine.load(qml_file)
 
@@ -92,6 +117,9 @@ if __name__ == "__main__":
     # Connect the ROS worker's signal to a slot in the QML
     root_object = engine.rootObjects()[0]
     ros_worker.new_message.connect(root_object.updateMessage)
+
+    # Add the QML engine view to the main window
+    main_window.set_qml_engine(engine)
 
     try:
         sys.exit(gui_app.exec())
